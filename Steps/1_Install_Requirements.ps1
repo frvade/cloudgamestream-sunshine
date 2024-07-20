@@ -23,9 +23,9 @@ $InstallAudio = (Read-Host "You need to have an audio interface installed for Ga
 $InstallVideo = (Read-Host "You also need the NVIDIA vGaming Drivers installed. Installing will reboot your machine. Install the tested and recommended ones? (y/n)").ToLower() -eq "y"
 $InstallGamepad = (Read-Host "Would you like to install ViGEmBus for gamepad and controller support? (y/n)").ToLower() -eq "y"
 
-Download-File "https://github.com/loki-47-6F-64/sunshine/releases/download/v0.8.0/Sunshine-Windows.zip" "$WorkDir\Sunshine-Windows.zip" "Sunshine Moonlight Host v0.8.0"
-Download-File "https://aka.ms/vs/16/release/vc_redist.x86.exe" "$WorkDir\redist_x86.exe" "Visual C++ Redist 2015-19 x86"
-if($ENV:PROCESSOR_ARCHITECTURE -eq 'AMD64') { Download-File "https://aka.ms/vs/16/release/vc_redist.x64.exe" "$WorkDir\redist_x64.exe" "Visual C++ Redist 2015-19 x64" }
+Download-File "https://github.com/LizardByte/Sunshine/releases/download/v0.23.1/sunshine-windows-installer.exe" "$WorkDir\sunshine.exe" "Sunshine Moonlight Host v0.23.1"
+Download-File "https://aka.ms/vs/17/release/vc_redist.x86.exe" "$WorkDir\redist_x86.exe" "Visual C++ Redist 2015-22 x86"
+if($ENV:PROCESSOR_ARCHITECTURE -eq 'AMD64') { Download-File "https://aka.ms/vs/17/release/vc_redist.x64.exe" "$WorkDir\redist_x64.exe" "Visual C++ Redist 2015-22 x64" }
 if($InstallAudio) { Download-File "https://download.vb-audio.com/Download_CABLE/VBCABLE_Driver_Pack43.zip" "$WorkDir\vbcable.zip" "VBCABLE" }
 if($InstallVideo) {
     $WebContent = Invoke-WebRequest -Uri 'https://nvidia-gaming.s3.amazonaws.com/?list-type=2&prefix=windows/latest&encoding-type=url&max-keys=1&start-after=windows/latest/'
@@ -33,30 +33,32 @@ if($InstallVideo) {
     $VideoDriverURL = "https://nvidia-gaming.s3.amazonaws.com/" + $xmlVideoDriverS3.ListBucketResult.Contents.Key
     Download-File "$VideoDriverURL" "$WorkDir\Drivers.zip" "NVIDIA vGaming Drivers"
 }
-if($InstallGamepad) { Download-File "https://github.com/ViGEm/ViGEmBus/releases/download/setup-v1.16.116/ViGEmBus_Setup_1.16.116.exe" "$WorkDir\ViGEmBus.exe" "ViGEmBus v1.16.116" }
+if($InstallGamepad) { Download-File "https://github.com/nefarius/ViGEmBus/releases/download/v1.18.367.0/ViGEmBus_1.18.367_x64_x86.exe" "$WorkDir\ViGEmBus.exe" "ViGEmBus v1.18.367.0" }
 
 Write-Host "Extracting Sunshine..."
 
 Expand-Archive -Path "$WorkDir\Sunshine-Windows.zip" -DestinationPath "$SunshineDir" -Force
+Write-Host "Installing Sunshine..."
+Start-Process -FilePath "$WorkDir\sunshine.exe" -NoNewWindow -Wait
 
 # Below to be updated with AIO redist install
-Write-Host "Installing Visual C++ Redist 2015-19 x86..."
+Write-Host "Installing Visual C++ Redist 2015-22 x86..."
 
 $ExitCode = (Start-Process -FilePath "$WorkDir\redist_x86.exe" -ArgumentList "/install","/q","/norestart" -NoNewWindow -Wait -Passthru).ExitCode
 if($ExitCode -eq 0) { Write-Host "Installed." -ForegroundColor Green }
 elseif($ExitCode -eq 1638) { Write-Host "Newer version already installed." -ForegroundColor Green }
 else {
-    throw "Visual C++ Redist 2015-19 x86 installation failed (Error: $ExitCode)."
+    throw "Visual C++ Redist 2015-22 x86 installation failed (Error: $ExitCode)."
 }
 
 if($ENV:PROCESSOR_ARCHITECTURE -eq 'AMD64') {
-    Write-Host "Installing Visual C++ Redist 2015-19 x64..."
+    Write-Host "Installing Visual C++ Redist 2015-22 x64..."
 
     $ExitCode = (Start-Process -FilePath "$WorkDir\redist_x64.exe" -ArgumentList "/install","/q","/norestart" -NoNewWindow -Wait -Passthru).ExitCode
     if($ExitCode -eq 0) { Write-Host "Installed." -ForegroundColor Green }
     elseif($ExitCode -eq 1638) { Write-Host "Newer version already installed." -ForegroundColor Green }
     else {
-         throw "Visual C++ Redist 2015-19 x64 installation failed (Error: $ExitCode)."
+         throw "Visual C++ Redist 2015-22 x64 installation failed (Error: $ExitCode)."
     }
 }
 
@@ -89,7 +91,7 @@ if($InstallVideo) {
         Register-ScheduledTask -Action $action -Trigger $trigger -Principal $principal -TaskName "GSSetup" -Description "GSSetup" | Out-Null
     }
     Expand-Archive -Path "$WorkDir\Drivers.zip" -DestinationPath "$WorkDir\Drivers"
-    $InstallPath = Resolve-Path "$WorkDir\Drivers\Windows\*server2019_64bit_international.exe"
+    $InstallPath = Resolve-Path "$WorkDir\Drivers\Windows\*server2022_64bit_international.exe"
     Write-Host "Installing NVIDIA vGaming drivers. This may take a while..." -ForegroundColor Green
     $ExitCode = (Start-Process -FilePath "$InstallPath" -ArgumentList "/s","/clean" -NoNewWindow -Wait -PassThru).ExitCode
     if($ExitCode -eq 0) {
